@@ -1,6 +1,6 @@
 import React from "react";
 import Logo from "../components/ui/Logo";
-import Logo2 from "../assets/logo2.png";
+// import Logo2 from "../assets/logo2.png";
 
 const Bottom = () => {
   return (
@@ -19,9 +19,9 @@ const Bottom = () => {
           <div className="flex items-center space-x-4 ml-4">
             <Logo />
           </div>
-          <div className="flex items-center border border-gray-300 px-4 py-2 rounded-md ml-4">
-            {/* <img src={Logo2} alt="Canadian Flag" className="h-5" /> */}
-          </div>
+          {/* <div className="flex items-center border border-gray-300 px-4 py-2 rounded-md ml-4">
+            <img src={Logo2} alt="Canadian Flag" className="h-5" />
+          </div> */}
         </div>
       </div>
     </footer>
