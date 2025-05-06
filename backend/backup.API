@@ -1,0 +1,82 @@
+const addEpicFormRow = (req, resp) => {
+  const { formName, formData } = req.body;
+
+  // Validate request body
+  if (
+    !formName ||
+    !formData ||
+    !Array.isArray(formData) ||
+    formData.length === 0
+  ) {
+    return resp
+      .status(400)
+      .json({ error: "Form name and row data are required" });
+  }
+
+  const formConfig = headersConfig[formName];
+  if (!formConfig) {
+    return resp
+      .status(404)
+      .json({ error: `No headers configuration found for form ${formName}` });
+  }
+
+  const { headers: formHeaders } = formConfig;
+  const currentHeaders = formHeaders[0]; // Assuming the first set of headers is used
+
+  const driveCPath = path.join(
+    "C:",
+    "Teals Soft",
+    "epic1102_example_files_20221002"
+  );
+  const filePath = path.join(driveCPath, `${formName}.dat`);
+
+  // Read existing data from the file
+  fs.readFile(filePath, "utf8", (err, data) => {
+    if (err) {
+      console.error(`Error reading file ${formName}.dat:`, err);
+      return resp
+        .status(500)
+        .json({ error: `Failed to read ${formName}.dat file` });
+    }
+
+    const lines = data.split("\n");
+
+    // Validate and construct new rows
+    formData.forEach((actualFormData) => {
+      const missingFields = currentHeaders.filter(
+        (header) => !(header in actualFormData)
+      );
+      if (missingFields.length > 0) {
+        return resp
+          .status(400)
+          .json({ error: `Missing fields: ${missingFields.join(", ")}` });
+      }
+      const line = lines[0];
+      const spaceGroups = (line.match(/ +/g) || []).map(
+        (group) => group.length
+      );
+      console.log(spaceGroups);
+      console.log(lines[0]);
+      // Trim spaces from each field and create new row
+      const newRow = currentHeaders
+        .map((header) => {
+          const value = actualFormData[header] || ""; // Default to empty string if not present
+          return String(value).trim(); // Convert to string and remove leading and trailing spaces
+        })
+        .join(" "); // Join fields with space
+
+      // Append the new row to the lines
+      lines.push(newRow);
+    });
+
+    // Write the updated content back to the file
+    fs.writeFile(filePath, lines.join("\n"), "utf8", (err) => {
+      if (err) {
+        return resp
+          .status(500)
+          .json({ error: `Failed to update file ${formName}` });
+      }
+      resp.json({ message: "Data added successfully" });
+    });
+  });
+};

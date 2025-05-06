@@ -1,0 +1,89 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Font+Awesome+5+Free:wght@400&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply leading-[normal] m-0;
+  font-family: "Poppins";
+}
+
+*,
+::before,
+::after {
+  border-width: 0;
+  box-sizing: border-box;
+  border-style: solid;
+}
+
+.font-sf-pro-display {
+  font-family: "SF Pro Display", sans-serif;
+}
+
+/* ------------------------ */
+/*        Custom css       */
+/* ------------------------ */
+@layer utilities {
+  /* Hide the scrollbar */
+  .thin-scroll-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Set scrollbar width and track color */
+  .thin-scroll-bar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(155, 155, 155, 1) rgba(255, 255, 255, 0.1);
+  }
+
+  /* Set scrollbar thumb color */
+  .thin-scroll-bar::-webkit-scrollbar-thumb {
+    scrollbar-width: thin;
+    background-color: rgba(155, 155, 155, 0.5);
+    border-radius: 6px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Set scrollbar thumb hover color */
+  .thin-scroll-bar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(155, 155, 155, 0.8);
+  }
+}
+
+table {
+  border-collapse: collapse;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  width: 100%;
+}
+
+th,
+td {
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  padding: 8px;
+
+  /* white-space: nowrap; */
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: gray lightgray; /* For Firefox */
+}
+
+/* For Chrome, Edge, and Safari */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  /* background-color: gray;
+   */
+  background-color: #364d74;
+
+  border-radius: 14px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background-color: #364d74;
+}
