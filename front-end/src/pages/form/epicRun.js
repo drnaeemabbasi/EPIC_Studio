@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useFormik } from "formik";
 import { epicRunSchemas } from "../../schemas/epicRun.schemas";
-import Header from "../../header/header";
-import Bottom from "../../header/bottom";
 import axios from "axios";
 
 const SimpleForm = () => {
@@ -80,8 +78,7 @@ const SimpleForm = () => {
 
   return (
     <>
-      <Header />
-      <div className="min-h-screen flex flex-col justify-center items-center bg-gray-100">
+      <div className="w-full flex-1 max-w-[100vw] overflow-y-auto">
         <form
           onSubmit={formik.handleSubmit}
           className="bg-white p-8 rounded-lg shadow-lg mt-8"
@@ -308,7 +305,6 @@ const SimpleForm = () => {
           </div>
         </form>
       </div>
-      <Bottom />
     </>
   );
 };

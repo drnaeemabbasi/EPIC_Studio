@@ -1,240 +1,108 @@
 import React, { useEffect, useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faInfoCircle, faWindowClose } from "@fortawesome/free-solid-svg-icons";
-import Header from "../../header/header";
-import Bottom from "../../header/bottom";
-import Sidebar from "../../header/sidebar";
 import axios from "axios";
-import RunExepop from "../../service/run.exe";
-import { headers as headersConfig } from "../../service/main.model.js";
 import NotepadPopup from "../../service/nodepadFile_popup";
-import { Link } from "react-router-dom";
-
-import { useNavigate, useParams } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css"; // Import styles
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { FaCloud, FaFileAlt, FaWind, FaSun } from "react-icons/fa";
 
 const Text = () => {
   const [isNotepadOpen, setIsNotepadOpen] = useState(false);
   const [notepadContent, setNotepadContent] = useState();
-  const [fileName, setFileName] = useState("");
-  const [showFullDescription, setShowFullDescription] = useState(false);
 
   const { fileFormat } = useParams();
-  // if (fileFormat) {
-  //   setFileName(fileFormat);
-  // }
   const navigate = useNavigate();
-  const openNotepad = async (fileFormat) => {
+
+  const openNotepad = async (format) => {
     try {
       const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/files/${fileFormat}`
+        `${process.env.REACT_APP_API_BASE_URL}/files/${format}`
       );
-
       setNotepadContent(response.data);
     } catch (error) {
       console.error("Error fetching file:", error);
       alert("Failed to fetch file content");
     }
   };
-  if (fileFormat) {
-    // setFileName(fileFormat);
-    openNotepad(fileFormat);
-  }
+
   const saveNotepadContent = async (content) => {
     try {
       console.log(content);
       await axios.put(
         `${process.env.REACT_APP_API_BASE_URL}/files/update`,
-        // `${process.env.REACT_APP_API_BASE_URL}/files/update`,
-        { content, fileFormat } // Pass the updated content to the backend
+        { content, fileFormat }
       );
       alert("File saved successfully!");
     } catch (error) {
       console.error("Error saving file:", error);
-      // alert("Failed to save file content");
     }
   };
 
   useEffect(() => {
     if (fileFormat) {
       setIsNotepadOpen(true);
-
-      console.log("fileFormat", fileFormat);
+      openNotepad(fileFormat); // Proper React pattern: fetching in useEffect!
+      console.log("fileFormat:", fileFormat);
+    } else {
+      setIsNotepadOpen(false);
     }
   }, [fileFormat]);
+
   return (
     <>
-      <div className="flex">
-        <Sidebar openNotepad={openNotepad} />
-
-        <div className="flex flex-col justify-start items-start w-full bg-gray-100 ">
-          <Header />
-          <table className="table-auto border-collapse w-full text-sm text-left shadow-md rounded-md overflow-hidden">
-            {/* Table Header */}
-            <thead className="bg-tc-dark-blue text-white text-center">
-              <tr>
-                <th className="px-4 py-2 border-b">Form Name</th>
-                <th className="px-4 py-2 border-b">Descriptions</th>
-                <th className="px-4 py-2 border-b">View</th>
-              </tr>
-            </thead>
-
-            {/* Table Body */}
-            <tbody className="bg-white">
-              <tr className="hover:bg-gray-100">
-                {/* Form Name Column */}
-                <td
-                  width="20%"
-                  className="px-4 py-2 border-b font-medium break-words"
-                >
-                  EPIC daily weather file (filename.DLY)
-                </td>
-
-                {/* Description Column */}
-                <td className="px-2 py-2 border-b text-justify break-words relative">
-                  {/* Truncated Description */}
-                  <div className="line-clamp-2 ">
-                    File format: two spaces, 3 fields of 4 characters each
-                    (integers), 7 fields of 6 characters each (floating). Daily
-                    weather data can be used in two ways: First, it can be
-                    directly used in EPIC simulation when the length of the
-                    simulation is the same or less than the historical daily
-                    weather. Second, in general, the historical daily weather
-                    data can be used to generate monthly weather data using the
-                    WXPM program, which then is used to generate EPIC weather
-                    input data directly by the EPIC model or using the WXGN
-                    weather generator. Both WXPM and WXGN are available at the
-                    EPIC/APEX software page of the BREC website. Daily weather
-                    data is maintained in separate files named filename.DLY.
-                    These files must be listed in the EPIC daily weather list
-                    file WDLSTCOM.DAT (or user-defined name) with a unique
-                    reference number, which corresponds to the variable IWTH in
-                    the run file EPICRUN.DAT. Each day of the time series takes
-                    one line of the daily weather file. A continuous series of
-                    dates is required. Leap years can be consistently considered
-                    or ignored and variable LPYR in the EPIC control file must
-                    be set accordingly. Elements included in the daily weather
-                    file are listed below.
-                  </div>
-
-                  {/* Info Icon */}
-                  <div className="absolute right-1 top-0 text-gray-500 cursor-pointer hover:text-gray-800">
-                    <FontAwesomeIcon
-                      icon={faInfoCircle}
-                      onClick={() => setShowFullDescription(true)}
-                    />
-                  </div>
-
-                  {/* Full Description Modal */}
-                </td>
-
-                {/* View Column */}
-                <td
-                  width="15%"
-                  className="px-4 bg-hover-tc-blue py-2 border-b text-blue-500 cursor-pointer hover:underline text-center"
-                  aria-label="View File"
-                >
-                  <Link
-                    to="/notepad-files/dly"
-                    // className="block  py-1 px-2 hover:bg-hover-tc-blue rounded-md"
-                    className="w-full  text-white flex items-center justify-between px-4 py-2 text-left font-bold rounded-sm hover:bg-tc-dark-blue"
-                  >
-                    DLY Form
-                  </Link>
-                  {/* View */}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          {showFullDescription && (
-            <div className="relative left-0 top-0 w-full bg-white text-black p-4 border rounded-md shadow-md z-10 max-h-60 overflow-auto">
-              <div className="flex justify-between items-center mb-2">
-                <h2 className="text-lg font-bold">Full Description</h2>
-                <FontAwesomeIcon
-                  icon={faWindowClose}
-                  className="text-gray-500 cursor-pointer hover:text-red-500"
-                  onClick={() => setShowFullDescription(false)}
-                />
-              </div>
-              File format: two spaces, 3 fields of 4 characters each (integers),
-              7 fields of 6 characters each (floating). Daily weather data can
-              be used in two ways: First, it can be directly used in EPIC
-              simulation when the length of the simulation is the same or less
-              than the historical daily weather. Second, in general, the
-              historical daily weather data can be used to generate monthly
-              weather data using the WXPM program, which then is used to
-              generate EPIC weather input data directly by the EPIC model or
-              using the WXGN weather generator. Both WXPM and WXGN are available
-              at the EPIC/APEX software page of the BREC website. Daily weather
-              data is maintained in separate files named filename.DLY. These
-              files must be listed in the EPIC daily weather list file
-              WDLSTCOM.DAT (or user-defined name) with a unique reference
-              number, which corresponds to the variable IWTH in the run file
-              EPICRUN.DAT. Each day of the time series takes one line of the
-              daily weather file. A continuous series of dates is required. Leap
-              years can be consistently considered or ignored and variable LPYR
-              in the EPIC control file must be set accordingly. Elements
-              included in the daily weather file are listed below.
-            </div>
-          )}
-          {/* <ul
-            className={`pl-4 space-y-1 text-sm overflow-hidden transition-all duration-300 ease-in-out 
-            
-            `}
-          >
-            <li>
-              <Link
-                to="/notepad-files/dly"
-                // className="block  py-1 px-2 hover:bg-hover-tc-blue rounded-md"
-                className="w-full bg-tc-blue text-white flex items-center justify-between px-4 py-2 text-left font-bold rounded-sm hover:bg-tc-dark-blue"
-              >
-                DLY Form
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/notepad-files/out"
-                // className="block  py-1 px-2 hover:bg-hover-tc-blue rounded-md"
-                className="w-full bg-tc-blue text-white flex items-center justify-between px-4 py-2 text-left font-bold rounded-sm hover:bg-tc-dark-blue"
-              >
-                OUT Form
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/notepad-files/wnd"
-                className="w-full bg-tc-blue text-white flex items-center justify-between px-4 py-2 text-left font-bold rounded-sm hover:bg-tc-dark-blue"
-              >
-                WND Form
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/notepad-files/wp1"
-                // className="block  py-1 px-2 hover:bg-hover-tc-blue rounded-md"
-                className="w-full bg-tc-blue text-white flex items-center justify-between px-4 py-2 text-left font-bold rounded-sm hover:bg-tc-dark-blue"
-              >
-                WP1 Form
-              </Link>
-            </li>
-          </ul> */}
-
-          <div>
-            {/* Existing Sidebar Code */}
-            <NotepadPopup
-              isOpen={isNotepadOpen}
-              onClose={() => {
-                setNotepadContent();
-                navigate(-1); // Navigates back to the previous page in the browser's history
-                setIsNotepadOpen(false);
-              }}
-              filename={fileFormat}
-              content={notepadContent}
-              onSave={saveNotepadContent}
-            />
+      <div className="w-full flex-1 max-w-[100vw] overflow-y-auto bg-slate-50">
+        <div className="flex flex-col justify-start items-center w-full min-h-full p-8">
+          
+          <div className="max-w-4xl w-full mb-8 pt-4">
+             <h2 className="text-2xl font-bold text-slate-800">Weather Files Dashboard</h2>
+             <p className="text-slate-500 mt-2">Select a weather file category to view or edit its contents.</p>
           </div>
-          <Bottom />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl w-full">
+            
+            <Link to="/notepad-files/dly" className="group bg-white rounded-xl shadow-sm border border-slate-200 p-8 flex flex-col items-center justify-center cursor-pointer hover:shadow-md hover:border-indigo-300 transition-all text-center">
+              <div className="w-16 h-16 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <FaCloud className="text-2xl" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-700">DLY Form</h3>
+              <p className="text-sm text-slate-500 mt-2">EPIC daily weather file (filename.DLY)</p>
+            </Link>
+
+            <Link to="/notepad-files/out" className="group bg-white rounded-xl shadow-sm border border-slate-200 p-8 flex flex-col items-center justify-center cursor-pointer hover:shadow-md hover:border-blue-300 transition-all text-center">
+              <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <FaFileAlt className="text-2xl" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-700">OUT Form</h3>
+              <p className="text-sm text-slate-500 mt-2">Weather output file</p>
+            </Link>
+
+            <Link to="/notepad-files/wnd" className="group bg-white rounded-xl shadow-sm border border-slate-200 p-8 flex flex-col items-center justify-center cursor-pointer hover:shadow-md hover:border-teal-300 transition-all text-center">
+              <div className="w-16 h-16 bg-teal-50 text-teal-500 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <FaWind className="text-2xl" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-700">WND Form</h3>
+              <p className="text-sm text-slate-500 mt-2">Wind weather file</p>
+            </Link>
+
+            <Link to="/notepad-files/wp1" className="group bg-white rounded-xl shadow-sm border border-slate-200 p-8 flex flex-col items-center justify-center cursor-pointer hover:shadow-md hover:border-purple-300 transition-all text-center">
+              <div className="w-16 h-16 bg-purple-50 text-purple-500 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <FaSun className="text-2xl" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-700">WP1 Form</h3>
+              <p className="text-sm text-slate-500 mt-2">Weather generation parameter file</p>
+            </Link>
+
+          </div>
+
+          <NotepadPopup
+            isOpen={isNotepadOpen}
+            onClose={() => {
+              setNotepadContent();
+              setIsNotepadOpen(false);
+              navigate("/notepad-files"); 
+            }}
+            filename={fileFormat}
+            content={notepadContent}
+            onSave={saveNotepadContent}
+          />
         </div>
       </div>
     </>

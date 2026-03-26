@@ -1,7 +1,7 @@
-import express from "express";
-import { RegregistrationUser } from "./../controllers/regitsration.controller.js";
-const RegistrationRouter = express.Router();
+// import express from "express";
+// import { RegregistrationUser } from "./../controllers/regitsration.controller.js";
+// const RegistrationRouter = express.Router();
 
-RegistrationRouter.post("/", RegregistrationUser);
+// RegistrationRouter.post("/", RegregistrationUser);
 
-export { RegistrationRouter };
+// export { RegistrationRouter };

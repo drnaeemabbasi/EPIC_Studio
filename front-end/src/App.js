@@ -16,33 +16,36 @@ import Text from "./pages/textFiles/openfile.js";
 
 // import Epic
 
+import MainLayout from "./components/MainLayout";
 import TableWithPopup from "./pages/form/firstForm_dataTable.js";
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/EpicAllForms/EPICRUN/0/1" />} />{" "}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Navigate to="/EpicAllForms/EPICRUN/0/1" />} />{" "}
+          <Route path="/epicRun" element={<SimpleForm />} /> {/* JSX here */}
+          <Route path="/epicCont" element={<EpicCont />} /> {/* JSX here */}
+          <Route path="/parm1102" element={<PARM1102 />} /> {/* JSX here */}
+          <Route path="/opcform-Form" element={<OPCForm />} /> {/* JSX here */}
+          <Route path="/sitform-Form" element={<SITForm />} />{" "}
+          <Route path="/solform-Form" element={<SOLForm />} /> {/* JSX here */}
+          <Route path="/renameFilesForm" element={<RenameFiles />} />{" "}
+          <Route path="/table" element={<TableWithPopup />} /> {/* JSX here */}
+          <Route
+            path="/EpicAllForms"
+            element={<Navigate to="/EpicAllForms/EPICRUN/0/1" />}
+          />{" "}
+          <Route
+            path="/EpicAllForms/:formName/:startingPoint/:endingPoint"
+            element={<EpicAllForms />}
+          />{" "}
+          <Route path="/notepad-files" element={<Text />} />{" "}
+          <Route path="/notepad-files/:fileFormat" element={<Text />} />{" "}
+        </Route>
+
         <Route path="/registration" element={<Registration />} />{" "}
-        <Route path="/epicRun" element={<SimpleForm />} /> {/* JSX here */}
-        <Route path="/epicCont" element={<EpicCont />} /> {/* JSX here */}
-        <Route path="/parm1102" element={<PARM1102 />} /> {/* JSX here */}
-        <Route path="/opcform-Form" element={<OPCForm />} /> {/* JSX here */}
-        <Route path="/sitform-Form" element={<SITForm />} />{" "}
-        <Route path="/solform-Form" element={<SOLForm />} /> {/* JSX here */}
-        <Route path="/renameFilesForm" element={<RenameFiles />} />{" "}
-        {/* <Route path="/notepad-files/:fileFormat" element={<Text />} />{" "} */}
-        {/* JSX here */}
-        <Route path="/table" element={<TableWithPopup />} /> {/* JSX here */}
-        <Route
-          path="/EpicAllForms"
-          element={<Navigate to="/EpicAllForms/EPICRUN/0/1" />}
-        />{" "}
-        <Route
-          path="/EpicAllForms/:formName/:startingPoint/:endingPoint"
-          element={<EpicAllForms />}
-        />{" "}
-        <Route path="/notepad-files/:fileFormat" element={<Text />} />{" "}
-        {/* JSX here */}
         <Route path="/error404" element={<Error404 />} /> {/* JSX here */}
       </Routes>
     </BrowserRouter>

@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css"; // Import styles
 import { useNavigate } from "react-router-dom";
-import Header from "../../header/header";
-import Bottom from "../../header/bottom";
-import Sidebar from "../../header/sidebar";
-import RunExepop from "../../service/run.exe";
 
 const RenameFiles = () => {
   const navigate = useNavigate();
@@ -71,14 +67,8 @@ const RenameFiles = () => {
 
   return (
     <>
-      <div className="flex">
-        <Sidebar />
-        <div className=" flex flex-col justify-center items-center w-full bg-gray-100">
-          <Header />
-          <div className="w-full px-6 flex justify-end mt-4">
-            <RunExepop />
-          </div>
-          <div className="p-5 w-full">
+      <div className="w-full flex-1 max-w-[100vw] overflow-y-auto">
+          <div className="p-5 w-full flex justify-center">
             <form
               onSubmit={handleUpdate}
               className="bg-white p-8 rounded-lg shadow-sm  w-full"
@@ -152,11 +142,7 @@ const RenameFiles = () => {
               </div>
             </form>
           </div>
-          <Bottom />
-        </div>
       </div>
-
-      <ToastContainer />
     </>
   );
 };

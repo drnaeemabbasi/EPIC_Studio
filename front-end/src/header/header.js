@@ -39,13 +39,13 @@ import epic_logo from "../assets/epic_logo.png";
 // export default Header;
 
 import Logo from "./../components/ui/Logo";
+import RunExepop from "../service/run.exe";
 
 const Header = () => {
   return (
     <header className="w-full text-white bg-white py-4 flex items-center justify-between text-white shadow-md px-8  shadow-md">
-      <div className="flex items-center">
-        {/* <img src="https://via.placeholder.com/50" alt="Logo" className="mr-4" /> */}
-        {/* <Logo /> */}
+      <div className="flex items-center space-x-4">
+        <RunExepop />
       </div>
       {/* Right section for icons (optional) */}
       <div className="flex items-center">

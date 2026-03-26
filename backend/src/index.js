@@ -8,8 +8,8 @@ import { exec } from "child_process";
 // const { exec } = require("child_process");
 import os from "os";
 // import { sequelize } from "./database/connectDB.js";
-import { RegistrationRouter } from "./routers/registration.router.js";
-import { getTextFileDataRouter } from "./routers/getTextFileData.router.js";
+// import { RegistrationRouter } from "./routers/registration.router.js";
+// import { getTextFileDataRouter } from "./routers/getTextFileData.router.js";
 
 import { epicRunFileRouter } from "./routers/epicFiles.router.js";
 // import { epicAllFilesRouters } from "./routers/epicFiles.router.js";
@@ -118,8 +118,8 @@ const parseEpicOutput = (output) => {
   };
 };
 
-app.use("/registration", RegistrationRouter);
-app.use("/getTextFileData", getTextFileDataRouter);
+// app.use("/registration", RegistrationRouter);
+// app.use("/getTextFileData", getTextFileDataRouter);
 app.use("/epicRunFileRouter", epicRunFileRouter);
 // app.use("/epicAllFilesRouters", epicAllFilesRouters);
 app.use("/epicAllFilesRouters", epicAllFilesRouters);

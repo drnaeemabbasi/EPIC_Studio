@@ -2,13 +2,8 @@ import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faInfoCircle, faWindowClose } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
-import Header from "../../header/header";
-import Bottom from "../../header/bottom";
-import Sidebar from "../../header/sidebar";
 import infoIcon from "../../assets/infoIcon.svg";
-
-import RunExepop from "../../service/run.exe";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const SITForm = () => {
@@ -66,15 +61,9 @@ const SITForm = () => {
 
   return (
     <>
-      <div className="flex">
-        <Sidebar />
-        <div className=" flex flex-col justify-center items-center w-full bg-gray-100">
-          <Header />
-          <div className="w-full px-6 flex justify-end mt-4">
-            <RunExepop />
-          </div>
+      <div className="w-full flex-1 max-w-[100vw] overflow-y-auto">
 
-          <div className="p-4">
+          <div className="p-4 w-full flex justify-center">
             <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-6xl ">
               <h2 className="text-xl font-bold text-gray-700 mb-4">SIT Form</h2>
 
@@ -191,10 +180,7 @@ const SITForm = () => {
               )}
             </div>
           </div>
-          <Bottom />
-        </div>
       </div>
-      <ToastContainer />
     </>
   );
 };
