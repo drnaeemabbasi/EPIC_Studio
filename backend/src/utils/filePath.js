@@ -1,18 +1,18 @@
 // utils/filePath.js
-import path from 'path'; // ✅ lowercase "path", not "Path"
- 
-let dynamicFilePath = path.resolve(process.env.FILE_PATH);
- 
+import path from 'path';
+
+let dynamicFilePath = process.env.FILE_PATH ? path.resolve(process.env.FILE_PATH) : null;
+
 function setFilePath(newPath) {
-  console.log('Setting dynamic file path:', newPath);
-  dynamicFilePath = newPath;
+  if (newPath) {
+    console.log('Setting dynamic file path:', newPath);
+    dynamicFilePath = path.resolve(newPath);
+  }
 }
- 
+
 function getFilePath() {
-  console.log(path.resolve(process.env.FILE_PATH))
-  return dynamicFilePath || path.resolve(process.env.FILE_PATH);
+  const envPath = process.env.FILE_PATH ? path.resolve(process.env.FILE_PATH) : null;
+  return dynamicFilePath || envPath;
 }
- 
+
 export { setFilePath, getFilePath };
- 
- 

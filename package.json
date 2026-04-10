@@ -1,6 +1,20 @@
 {
+  "name": "epic-studio",
+  "version": "1.0.0",
+  "description": "EPIC Studio Desktop Application",
+  "main": "electron.js",
+  "scripts": {
+    "start": "electron .",
+    "build-frontend": "cd front-end && npm run build",
+    "install-all": "cd front-end && npm install && cd ../backend && npm install",
+    "dev": "concurrently \"cd front-end && npm start\" \"cd backend && npm run dev\""
+  },
   "dependencies": {
+    "electron": "^33.2.1",
     "react-icons": "^5.3.0",
     "universal-base64url": "^1.1.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
   }
 }

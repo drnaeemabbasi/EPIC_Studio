@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { headers as headersConfig } from "../model/main.model.js";
 import { getFilePath } from "../utils/filePath.js";
+import { getModelForFile } from "../services/modelDefinition.service.js";
 // Utility function to process each line based on headers
 const processLine = (line, headers) => {
   if (!Array.isArray(headers)) {
@@ -52,10 +53,37 @@ const getEpicFormData = async (req, resp) => {
   }
 
   const {
-    headers: formHeaders,
-    index = startingPoint,
-    forLoopEndpoint = endingPoint,
+    headers: defaultHeaders,
+    index: defaultOffset = 0,
+    forLoopEndpoint: configEndpoint = 0,
   } = formConfig;
+
+  // Use query params and enforce minimum offset from config
+  const requestedStart = (startingPoint !== undefined) ? parseInt(startingPoint, 10) : defaultOffset;
+  const actualStartingPoint = Math.max(requestedStart, defaultOffset);
+  const actualEndingPoint = (endingPoint !== undefined) ? parseInt(endingPoint, 10) : configEndpoint;
+
+  // Map form names to the names used in the Source_File column of the CSV
+  const fileAliases = {
+    "FERT2012": "FERTCOM.DAT",
+    // Add more aliases here if needed
+  };
+
+  const csvLookupName = fileAliases[formName] || (formName + (formName.includes('.') ? '' : '.DAT'));
+
+  // Link to CSV headers if available
+  let headersToUse = defaultHeaders;
+  try {
+    const csvModel = await getModelForFile(csvLookupName);
+    if (csvModel && csvModel.lines) {
+      const firstLineNum = Object.keys(csvModel.lines)[0];
+      if (firstLineNum) {
+        headersToUse = [csvModel.lines[firstLineNum].map(f => f.Variable_Code)];
+      }
+    }
+  } catch (e) {
+    console.error("Failed to fetch dynamic headers:", e);
+  }
 
   const filePathFromEnv = getFilePath();
 
@@ -74,20 +102,20 @@ const getEpicFormData = async (req, resp) => {
 
     const formData = [];
     const endpoint =
-      forLoopEndpoint && forLoopEndpoint > 0
-        ? Math.min(forLoopEndpoint, lines.length)
+      configEndpoint && configEndpoint > 0
+        ? Math.min(configEndpoint, lines.length)
         : lines.length;
 
     let headerIndex = 0;
 
-    for (let i = index; i < endpoint; i++) {
+    for (let i = actualStartingPoint; i < endpoint; i++) {
       const line = lines[i].trim();
 
-      if (headerIndex >= formHeaders.length) {
+      if (headerIndex >= headersToUse.length) {
         headerIndex = 0;
       }
 
-      const currentHeaders = formHeaders[headerIndex];
+      const currentHeaders = headersToUse[headerIndex];
 
       if (line) {
         try {
@@ -115,6 +143,9 @@ const getEpicFormData = async (req, resp) => {
       formName,
       data: formData,
       descriptions: formConfig.descriptions || {},
+      totalLines: lines.length,
+      rowCount: formData.length,
+      offset: defaultOffset // Send the offset so frontend knows where data begins
     });
   });
 };
@@ -334,10 +365,18 @@ const updateEpicFormData = (req, resp) => {
     };
 
     // Update the lines for each row based on the incoming updates
-    Object.entries(updates).forEach(([rowKey, rowData], index) => {
-      if (rowKey !== "fileName" && rowKey !== "startingPoint") {
-        const lineIndex = startingPoint; // Use the startingPoint to calculate the line index
-        updateLine(lineIndex, rowData); // Update the line at the calculated lineIndex
+    Object.entries(updates).forEach(([rowKey, rowData]) => {
+      // rowKey is usually like "row1", "row2", etc.
+      if (rowKey.startsWith("row")) {
+        const rowNumber = parseInt(rowKey.replace(/\D/g, ""), 10);
+        if (!isNaN(rowNumber)) {
+          const lineIndex = parseInt(startingPoint, 10) + (rowNumber - 1); // 0-indexed offset
+          if (lineIndex >= 0 && lineIndex < lines.length) {
+            updateLine(lineIndex, rowData);
+          } else {
+            console.error(`Row out of bounds: start=${startingPoint}, key=${rowKey}, target=${lineIndex}, lines=${lines.length}`);
+          }
+        }
       }
     });
 

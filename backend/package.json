@@ -3,6 +3,7 @@
     "bcrypt": "^5.1.1",
     "child_process": "^1.0.2",
     "cors": "^2.8.5",
+    "csv-parser": "^3.2.0",
     "dotenv": "^16.4.5",
     "electron": "^33.2.1",
     "express": "^4.21.0",
@@ -18,7 +19,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "env-cmd -f ./.env.development -f ./.env.development nodemon ./src/index.js",
+    "dev": "env-cmd -f ./.env.development -f ./.env.development nodemon --ext js,json,csv ./src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

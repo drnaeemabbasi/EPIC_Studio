@@ -3,7 +3,7 @@ import bodyParser from "body-parser";
 import fs from "fs";
 import path from "path";
 import cors from "cors";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 // import { setFilePath } from "./utils/filePath.js";
 // const { exec } = require("child_process");
 import os from "os";
@@ -16,10 +16,18 @@ import { epicRunFileRouter } from "./routers/epicFiles.router.js";
 import { epicAllFilesRouters } from "./routers/epicAllFiles.router.js"; // Import router
 import { basicRoutes } from "./routers/basic.router.js";
 import { OPCFormsRouter } from "./routers/OPCForms.router.js";
+import { loadModelDefinition, getModelForFile } from "./services/modelDefinition.service.js";
+
 
 import { filesRouters } from "./routers/Files.router.js";
+import epicDescriptionsRouter from "./routers/epicDescriptions.router.js";
 import { setFilePath,getFilePath } from "./utils/filePath.js";
 const app = express();
+
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
 
 const port = process.env.PORT || 3000;
 // // sequelize.sync({ force: true });
@@ -51,35 +59,35 @@ if (process.env.NODE_ENV === "development") {
 }
 // getTextFileDataRouter;
 // Define the directory and executable paths
-const executableDir = getFilePath();
-
-const executablePath = path.join(executableDir, "epic1102.exe");
-
 app.get("/run-epic", (req, res) => {
-  // Construct the command to execute the EXE with the folder path
   const executableDir = getFilePath();
+  if (!executableDir) {
+    return res
+      .status(400)
+      .json({ error: "Executable folder path is not configured." });
+  }
 
-  const command = `cd "${executableDir}" && .\\epic1102.exe`;
+  const executablePath = path.join(executableDir, "epic1102.exe");
+  if (!fs.existsSync(executablePath)) {
+    return res
+      .status(404)
+      .json({ error: `Executable not found at ${executablePath}` });
+  }
 
-  exec(command, (error, stdout, stderr) => {
-    console.log(command);
+  console.log(`[backend] Running EPIC executable: ${executablePath}`);
 
+  execFile(executablePath, { cwd: executableDir, timeout: 10 * 60 * 1000 }, (error, stdout, stderr) => {
     if (error) {
-      console.error(`Execution Error: ${error.message}`);
+      console.error(`[backend] Execution Error: ${error.message}`);
       return res.status(500).json({ error: error.message });
     }
 
     if (stderr) {
-      console.error(`Standard Error: ${stderr}`);
-      return res.status(500).json({ error: stderr });
+      console.warn(`[backend] Executable stderr: ${stderr}`);
     }
 
     console.log(stdout); // Log the raw output for debugging
-
-    // Parse the raw output to a structured object
     const parsedOutput = parseEpicOutput(stdout);
-    console.log(parsedOutput);
-    // Send the parsed object back to the client
     res.json({ output: parsedOutput });
   });
 });
@@ -124,75 +132,54 @@ app.use("/epicRunFileRouter", epicRunFileRouter);
 // app.use("/epicAllFilesRouters", epicAllFilesRouters);
 app.use("/epicAllFilesRouters", epicAllFilesRouters);
 app.use("/basicRoutes", basicRoutes);
-app.use("/databseFiles", OPCFormsRouter);
+app.use("/databaseFiles", OPCFormsRouter);
 app.use("/files", filesRouters);
+app.use("/api/descriptions", epicDescriptionsRouter);
+
+// Model Metadata API
+app.get("/api/model/columns/:filename", async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const model = await getModelForFile(filename);
+    if (!model) {
+      return res.status(404).json({ error: `Model for ${filename} not found.` });
+    }
+    res.json(model);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 app.post("/pickFolder", (req, res) => {
   const { folderPath } = req.body;
-  console.log(folderPath);
 
-  setFilePath(folderPath);
-  res.send({ message: 'File path set!' });
+  if (!folderPath || typeof folderPath !== "string") {
+    return res.status(400).json({ error: "A valid folderPath is required." });
+  }
 
+  const resolvedPath = path.resolve(folderPath);
+  if (!fs.existsSync(resolvedPath) || !fs.statSync(resolvedPath).isDirectory()) {
+    return res.status(400).json({ error: `Folder does not exist or is not a directory: ${resolvedPath}` });
+  }
+
+  setFilePath(resolvedPath);
+  console.log(`[backend] Model folder set to: ${resolvedPath}`);
+  res.json({ message: "File path set!", folderPath: resolvedPath });
 });
 
-app.post("/submit", async (req, res) => {
-  const { name, email, age } = req.body;
-  // C:\Program Files
-  try {
-    // Save to database
-    // const user = await User.create({ name, email, age });
-    const driveCPath = path.join("C:", "Teals");
-    // Check if the folder exists, if not create it
-    if (!fs.existsSync(driveCPath)) {
-      fs.mkdirSync(driveCPath);
-    }
-
-    const filePath = path.join(driveCPath, "form_data.txt");
-
-    const fileData = `${name.padEnd(5, " ")} ${email.padEnd(5, " ")} ${age
-      .toString()
-      .padEnd(5, " ")}\n`;
-
-    // Write to the text file
-    fs.appendFileSync(filePath, fileData);
-
-    res.send('Form submitted and data saved in the "Teals" folder in Drive C!');
-    // Get path to Downloads folder
-    // const downloadsPath = path.join(os.homedir(), "Downloads", "form_data.txt");
-
-    // // Create text file with columns in Downloads folder
-    // const fileData = `${name.padEnd(5, " ")} ${email.padEnd(5, " ")} ${age
-    //   .toString()
-    //   .padEnd(5, " ")}\n`;
-    // fs.appendFileSync(downloadsPath, fileData);
-
-    // res.send("Form submitted and data saved in the Downloads folder!");
-  } catch (error) {
-    console.error(error);
-    res.send("Error occurred!");
-  }
+app.get("/folder-path", (req, res) => {
+  const currentFolder = getFilePath();
+  res.json({ folderPath: currentFolder || null });
 });
 
-// Handle form submission
-app.post("/submit_code_folder", async (req, res) => {
-  const { name, email, age } = req.body;
+app.use((req, res) => {
+  res.status(404).json({ error: "Endpoint not found" });
+});
 
-  try {
-    // Save to database
-    const user = await User.create({ name, email, age });
-
-    // Create text file with columns
-    const fileData = `${name.padEnd(20, " ")} ${email.padEnd(30, " ")} ${age
-      .toString()
-      .padEnd(5, " ")}\n`;
-    fs.appendFileSync("form_data.txt", fileData);
-
-    res.send("Form submitted and data saved!");
-  } catch (error) {
-    console.error(error);
-    res.send("Error occurred!");
-  }
+app.use((err, req, res, next) => {
+  console.error("[backend] Unhandled error:", err);
+  res.status(500).json({ error: "Internal server error" });
 });
 
 app.listen(port, () => {

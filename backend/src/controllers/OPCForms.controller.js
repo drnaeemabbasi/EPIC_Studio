@@ -1,762 +1,337 @@
 import fs from "fs";
 import path from "path";
-import { headers as headersConfig } from "../model/main.model.js";
-import { Console } from "console";
+import { getModelForFile } from "../services/modelDefinition.service.js";
 import { getFilePath } from "../utils/filePath.js";
 
-const fetchOPCFormData = (req, resp) => {
-  const { formName } = req.query;
-  let formConfig = headersConfig[formName];
-
-  const filePathFromEnv = getFilePath();
-
-  if (!filePathFromEnv) {
-    return resp.status(500).json({ error: "FilePath is not defined." });
-  }
-
-  const driveCPath = path.join(filePathFromEnv);
-  fs.readdir(driveCPath, (err, files) => {
-    if (err) {
-      return resp
-        .status(500)
-        .json({ error: `Error reading directory: ${err.message}` });
-    }
-
-    const opcFiles = files.filter(
-      (file) => path.extname(file).toLowerCase() === ".opc"
-    );
-
-    if (opcFiles.length === 0) {
-      return resp.status(404).json({ message: "No .opc files found" });
-    }
-
-    const filePath = path.join(driveCPath, opcFiles[0]);
-
-    fs.readFile(filePath, "utf8", (err, data) => {
-      if (err) {
-        return resp.status(500).json({ error: "Failed to read file" });
-      }
-
-      const lines = data
-        .trim()
-        .split("\n")
-        .filter((line) => line.trim() !== ""); // Remove empty lines
-      const { headers } = formConfig;
-
-      if (!headers || headers.length === 0) {
-        return resp
-          .status(500)
-          .json({ error: "No headers defined in config." });
-      }
-
-      const rows = lines.slice(2).map((line) => {
-        // Use `slice(2)` to skip the first two rows
-        const values = line.trim().split(/\s+/); // Split line into an array of values
-        let obj = {};
-
-        // Access the first set of headers
-        const actualHeaders = headers[0];
-
-        // Map each header to its corresponding value
-        actualHeaders.forEach((header, valueIndex) => {
-          obj[header] = values[valueIndex] || null; // Use null if there's no corresponding value
-        });
-
-        return obj;
-      });
-      resp.json({ data: rows, descriptions: formConfig.descriptions });
-    });
-  });
-};
-
-const updateOPCFormData = (req, resp) => {
-  const { formData } = req.body;
-
-  if (!formData || !Array.isArray(formData)) {
-    return resp
-      .status(400)
-      .json({ error: "Invalid or missing data in request body" });
-  }
-
-  const filePathFromEnv = getFilePath();
-
-  if (!filePathFromEnv) {
-    return resp.status(500).json({ error: "FilePath is not defined." });
-  }
-
-  const driveCPath = path.join(filePathFromEnv);
-
-  fs.readdir(driveCPath, (err, files) => {
-    if (err) {
-      return resp
-        .status(500)
-        .json({ error: `Error reading directory: ${err.message}` });
-    }
-
-    const opcFiles = files.filter(
-      (file) => path.extname(file).toLowerCase() === ".opc"
-    );
-
-    if (opcFiles.length === 0) {
-      return resp.status(404).json({ message: "No .opc files found" });
-    }
-
-    const filePath = path.join(driveCPath, opcFiles[0]);
-
-    fs.readFile(filePath, "utf8", (err, data) => {
-      if (err) {
-        return resp.status(500).json({ error: "Failed to read file" });
-      }
-      const lines = data.trim().split("\n");
-      let formConfig = headersConfig["OPCForm"];
-      const { headers } = formConfig;
-
-      // Function to update a line based on the original format
-      const updateLine = (lineIndex, rowData) => {
-        if (rowData) {
-          const originalLine = lines[lineIndex];
-
-          const values = originalLine.match(/\S+/g); // Split only by values (ignoring spaces)
-
-          let valueIndex = 0;
-          Object.keys(rowData).forEach((key) => {
-            // Check if value exists in the original line before updating
-            if (values[valueIndex]) {
-              values[valueIndex] = rowData[key]; // Update the value
-            }
-            valueIndex++; // Move to the next value position
-          });
-
-          // Recreate the line by keeping the same format and length
-          lines[lineIndex] = originalLine.replace(/\S+/g, (match, i) => {
-            return values.shift(); // Replace with updated values
-          });
-        }
-      };
-
-      formData.forEach((line, index) => {
-        // if (index > 1) {
-        updateLine(index + 2, line); // First line (row1)
-        // }
-      });
-      const updatedContent = lines.join("\n");
-      // Write the updated content back to the file
-      fs.writeFile(filePath, updatedContent, "utf8", (err) => {
-        if (err) {
-          return resp.status(500).json({ error: "Failed to update file" });
-        }
-        resp.json({ message: "Data updated successfully" });
-      });
-    });
-  });
-};
-
-const fetchSITFormData = (req, resp) => {
-  const formName = "SITForm";
-  const formConfig = headersConfig[formName];
-
-  const filePathFromEnv = getFilePath();
-
-  if (!filePathFromEnv) {
-    return resp.status(500).json({ error: "FilePath is not defined." });
-  }
-
-  const driveCPath = path.join(filePathFromEnv);
-
-  fs.readdir(driveCPath, (err, files) => {
-    if (err) {
-      return resp
-        .status(500)
-        .json({ error: `Error reading directory: ${err.message}` });
-    }
-
-    const sitFiles = files.filter(
-      (file) => path.extname(file).toLowerCase() === ".sit"
-    );
-
-    if (sitFiles.length === 0) {
-      return resp.status(404).json({ message: "No .SIT files found" });
-    }
-
-    const filePath = path.join(driveCPath, sitFiles[0]);
-
-    fs.readFile(filePath, "utf8", (err, data) => {
-      if (err) {
-        return resp.status(500).json({ error: "Failed to read file" });
-      }
-
-      // Split and process lines
-      const lines = data
-        .trim()
-        .split("\n")
-        .filter((line) => line.trim() !== ""); // Remove empty lines
-
-      // Start processing data from the 4th line
-      const dataLines = lines.slice(2);
-
-      const { headers } = formConfig;
-
-      if (!headers || headers.length === 0) {
-        return resp
-          .status(500)
-          .json({ error: "No headers defined in config." });
-      }
-
-      let currentHeaderIndex = 0;
-      const rows = [];
-      dataLines.forEach((line) => {
-        const values = line.trim().split(/\s+/); // Split line into values
-        const currentHeaders = headers[currentHeaderIndex] || [];
-        const row = {};
-
-        currentHeaders.forEach((header, index) => {
-          row[header] = values[index] || null; // Assign value or null
-        });
-
-        rows.push(row);
-
-        // Switch to the next header set if values align with the next set
-        // if (values.length === currentHeaders.length) {
-        currentHeaderIndex++;
-        // }
-      });
-
-      resp.json({ data: rows, descriptions: formConfig.descriptions });
-    });
-  });
-};
-
-const updateSITFormData = (req, resp) => {
-  const { formData } = req.body;
-  if (!formData || !Array.isArray(formData)) {
-    return resp
-      .status(400)
-      .json({ error: "Invalid or missing data in request body" });
-  }
-
-  const filePathFromEnv = getFilePath();
-
-  if (!filePathFromEnv) {
-    return resp.status(500).json({ error: "FilePath is not defined." });
-  }
-
-  const driveCPath = path.join(filePathFromEnv);
-
-  fs.readdir(driveCPath, (err, files) => {
-    if (err) {
-      return resp
-        .status(500)
-        .json({ error: `Error reading directory: ${err.message}` });
-    }
-
-    const opcFiles = files.filter(
-      (file) => path.extname(file).toLowerCase() === ".sit"
-    );
-
-    if (opcFiles.length === 0) {
-      return resp.status(404).json({ message: "No .sit files found" });
-    }
-
-    const filePath = path.join(driveCPath, opcFiles[0]);
-    fs.readFile(filePath, "utf8", (err, data) => {
-      if (err) {
-        return resp.status(500).json({ error: "Failed to read file" });
-      }
-      const lines = data.trim().split("\n");
-      let formConfig = headersConfig["SITForm"];
-      const { headers } = formConfig;
-
-      // Function to update a line based on the original format
-      const updateLine = (lineIndex, rowData) => {
-        if (rowData) {
-          const originalLine = lines[lineIndex];
-
-          const values = originalLine.match(/\S+/g); // Split only by values (ignoring spaces)
-
-          let valueIndex = 0;
-          Object.keys(rowData).forEach((key) => {
-            // Check if value exists in the original line before updating
-            if (values[valueIndex]) {
-              values[valueIndex] = rowData[key]; // Update the value
-            }
-            valueIndex++; // Move to the next value position
-          });
-
-          // Recreate the line by keeping the same format and length
-          lines[lineIndex] = originalLine.replace(/\S+/g, (match, i) => {
-            return values.shift(); // Replace with updated values
-          });
-        }
-      };
-
-      formData.forEach((line, index) => {
-        // if (index > 1) {
-        updateLine(index + 3, line); // First line (row1)
-        // }
-      });
-
-      const updatedContent = lines.join("\n");
-      // Write the updated content back to the file
-      fs.writeFile(filePath, updatedContent, "utf8", (err) => {
-        if (err) {
-          return resp.status(500).json({ error: "Failed to update file" });
-        }
-        resp.json({ message: "Data updated successfully" });
-      });
-    });
-  });
-};
-
-// const updateSITFileWithNewRows = (req, resp) => {
-//   const { formData } = req.body;
-// };
-const updateOPCFileWithNewRows = (req, resp) => {
-  const { formData } = req.body;
-
-  if (!formData || !Array.isArray(formData)) {
-    return resp
-      .status(400)
-      .json({ error: "Invalid or missing data in request body" });
-  }
-
-  const filePathFromEnv = getFilePath();
-
-  if (!filePathFromEnv) {
-    return resp.status(500).json({ error: "FilePath is not defined." });
-  }
-
-  const driveCPath = path.join(filePathFromEnv);
-
-  fs.readdir(driveCPath, (err, files) => {
-    if (err) {
-      return resp
-        .status(500)
-        .json({ error: `Error reading directory: ${err.message}` });
-    }
-
-    const opcFiles = files.filter(
-      (file) => path.extname(file).toLowerCase() === ".opc"
-    );
-
-    if (opcFiles.length === 0) {
-      return resp.status(404).json({ message: "No .opc files found" });
-    }
-
-    const filePath = path.join(driveCPath, opcFiles[0]);
-
-    fs.readFile(filePath, "utf8", (err, data) => {
-      if (err) {
-        return resp.status(500).json({ error: "Failed to read file" });
-      }
-      const lines = data.trim().split("\n");
-      let formConfig = headersConfig["OPCForm"];
-      const { headers } = formConfig;
-
-      // Function to update a line based on the original format
-      const updateLine = (lineIndex, rowData) => {
-        if (rowData) {
-          const originalLine = lines[lineIndex] || lines[4];
-
-          const values = originalLine.match(/\S+/g); // Split only by values (ignoring spaces)
-
-          let valueIndex = 0;
-          Object.keys(rowData).forEach((key) => {
-            // Check if value exists in the original line before updating
-            if (values[valueIndex]) {
-              values[valueIndex] = rowData[key]; // Update the value
-            }
-            valueIndex++; // Move to the next value position
-          });
-
-          // Recreate the line by keeping the same format and length
-          lines[lineIndex] = originalLine.replace(/\S+/g, (match, i) => {
-            return values.shift(); // Replace with updated values
-          });
-        }
-      };
-
-      formData.forEach((line, index) => {
-        // if (index > 1) {
-        updateLine(index + 2, line); // First line (row1)
-        // }
-      });
-      const updatedContent = lines.join("\n");
-      // Write the updated content back to the file
-      fs.writeFile(filePath, updatedContent, "utf8", (err) => {
-        if (err) {
-          return resp.status(500).json({ error: "Failed to update file" });
-        }
-        resp.json({ message: "Data updated successfully" });
-      });
-    });
-  });
-};
-
-const fetchSOLFormData = (req, resp) => {
-  const formName = "SOLForm";
-
-  let formConfig = headersConfig[formName];
-
-  const filePathFromEnv = getFilePath();
-
-  if (!filePathFromEnv) {
-    return resp.status(500).json({ error: "FilePath is not defined." });
-  }
-
-  const driveCPath = path.join(filePathFromEnv);
-  fs.readdir(driveCPath, (err, files) => {
-    if (err) {
-      return resp
-        .status(500)
-        .json({ error: `Error reading directory: ${err.message}` });
-    }
-
-    const opcFiles = files.filter(
-      (file) => path.extname(file).toLowerCase() === ".sol"
-    );
-
-    if (opcFiles.length === 0) {
-      return resp.status(404).json({ message: "No .Sol files found" });
-    }
-
-    const filePath = path.join(driveCPath, opcFiles[0]);
-
-    fs.readFile(filePath, "utf8", (err, data) => {
-      if (err) {
-        return resp.status(500).json({ error: "Failed to read file" });
-      }
-
-      let lines = data
-        .trim()
-        .split("\n")
-        .filter((line) => line.trim() !== ""); // Remove empty lines
-      const { headers } = formConfig;
-
-      if (!headers || headers.length === 0) {
-        return resp
-          .status(500)
-          .json({ error: "No headers defined in config." });
-      }
-      // .slice(1)
-      const rows = lines.slice(0, 3).map((line, index) => {
-        // Use `slice(2)` to skip the first two rows
-        const values = line.trim().split(/\s+/); // Split line into an array of values
-        let obj = {};
-        let actualHeaders;
-        if (index == 0) {
-          actualHeaders = headers[0];
-        } else if (index == 1) {
-          actualHeaders = headers[1];
-        } else if (index == 2) {
-          actualHeaders = headers[2];
-        } else {
-          actualHeaders = headers[3];
-        }
-        // Access the first set of headers
-        // Map each header to its corresponding value
-        actualHeaders.forEach((header, valueIndex) => {
-          obj[header] = values[valueIndex] || null; // Use null if there's no corresponding value
-        });
-
-        return obj;
-      });
-
-      let mainData = {};
-
-      const columns = lines.slice(3, 51).map((line, index) => {
-        const values = line.trim().split(/\s+/); // Split line into an array of values
-        const actualHeaders = headers[3]; // Ensure the headers array is properly defined
-        const mainHeaders = headers[4]; // Ensure the headers array is properly defined
-
-        // Map each header to its corresponding value
-        actualHeaders.forEach((header, valueIndex) => {
-          const value = values[valueIndex] || null; // Use null if there's no corresponding value
-          if (value != null) {
-            // Match any "ColumnN" pattern dynamically
-            const match = header.match(/^Column(\d+)$/);
-            if (match) {
-              const columnNumber = match[1]; // Extract the column number from the header
-
-              // Dynamically create the column object if it doesn't exist
-              if (!mainData[`column${columnNumber}`]) {
-                mainData[`column${columnNumber}`] = {};
-              }
-
-              // Assign the value to the corresponding column and header
-              mainData[`column${columnNumber}`][
-                mainHeaders[index] || `Column_${index}`
-              ] = value;
-            }
-          }
-        });
-      });
-
-      const transposedData = headers.map((col, colIndex) => {
-        return lines.slice(1).map((row) => {
-          const values = row.split(/\s+/); // Split the row by whitespace
-
-          return values[colIndex] ? parseFloat(values[colIndex]) : null; // Get the value for the column
-        });
-      });
-
-      transposedData.forEach((element) => {
-        const actualHeaders = headers[3];
-        let obj = {};
-
-        actualHeaders.forEach((header, valueIndex) => {
-          obj[header] = element[valueIndex] || null; // Use null if there's no corresponding value
-        });
-      });
-
-      const combinedData = { rows, mainData };
-
-      resp.json({
-        data: combinedData,
-        mainData,
-        descriptions: formConfig.descriptions,
-      });
-    });
-  });
-};
-
-const updateSOLFormData = (req, resp) => {
-  const { formData, formMainData } = req.body;
-  if (!formData || !Array.isArray(formData)) {
-    return resp
-      .status(400)
-      .json({ error: "Invalid or missing data in request body" });
-  }
-
-  const filePathFromEnv = getFilePath();
-
-  if (!filePathFromEnv) {
-    return resp.status(500).json({ error: "FilePath is not defined." });
-  }
-
-  const driveCPath = path.join(filePathFromEnv);
-
-  fs.readdir(driveCPath, (err, files) => {
-    if (err) {
-      return resp
-        .status(500)
-        .json({ error: `Error reading directory: ${err.message}` });
-    }
-
-    const opcFiles = files.filter(
-      (file) => path.extname(file).toLowerCase() === ".sol"
-    );
-
-    if (opcFiles.length === 0) {
-      return resp.status(404).json({ message: "No .sol files found" });
-    }
-
-    const filePath = path.join(driveCPath, opcFiles[0]);
-
-    fs.readFile(filePath, "utf8", (err, data) => {
-      if (err) {
-        return resp.status(500).json({ error: "Failed to read file" });
-      }
-      const lines = data.trim().split("\n");
-      let formConfig = headersConfig["SOLForm"];
-      const { headers } = formConfig;
-
-      // Function to update a line based on the original format
-      const updateLine = (lineIndex, rowData) => {
-        if (rowData) {
-          // console.log(rowData[6]);
-
-          // const originalLine = lines[lineIndex];
-          const originalLine = lines[lineIndex] || lines[2];
-
-          const values = originalLine.match(/\S+/g); // Split only by values (ignoring spaces)
-
-          let valueIndex = 0;
-          Object.keys(rowData).forEach((key) => {
-            // Check if value exists in the original line before updating
-            if (values[valueIndex]) {
-              values[valueIndex] = rowData[key]; // Update the value
-            } else {
-              const originalLine = lines[2];
-
-              const values = originalLine.match(/\S+/g); // Spl
-              console.log(values[valueIndex], rowData[key]);
-
-              values[valueIndex] = rowData[key]; // Update the value
-
-              // console.log(valueIndex);
-            }
-
-            valueIndex++; // Move to the next value position
-          });
-
-          // Recreate the line by keeping the same format and length
-          lines[lineIndex] = originalLine.replace(/\S+/g, (match, i) => {
-            return values.shift(); // Replace with updated values
-          });
-        }
-      };
-
-      formData.forEach((line, index) => {
-        // if (index > 1) {
-        updateLine(index, line); // First line (row1)
-        // }
-      });
-
-      const dataArray = Object.values(formMainData);
-      // console.log(dataArray);
-      // console.log(dataArray);
-
-      // Output the result
-
-      const combinedResult = dataArray.reduce((accumulator, dataObject) => {
-        Object.entries(dataObject).forEach(([key, value]) => {
-          if (!accumulator[key]) {
-            // Initialize the key with an array
-            accumulator[key] = [];
-          }
-          // Push the value to the corresponding key's array
-          accumulator[key].push(value || "0.00");
-        });
-        return accumulator;
-      }, {});
-      const dataArray2 = Object.values(combinedResult);
-
-      const convertedObjects = dataArray2.map((arr) => {
-        // Convert each array to an object with numeric properties based on index
-        return arr.reduce((acc, value, index) => {
-          acc[index] = value;
-          return acc;
-        }, {});
-      });
-
-      if (convertedObjects && Array.isArray(convertedObjects)) {
-        convertedObjects.forEach((line, index) => {
-          updateLine(index + 3, line);
-        });
-      } else {
-        console.error("Invalid formData structure.");
-      }
-
-      const updatedContent = lines.join("\n");
-      // console.log(updatedContent);
-
-      fs.writeFile(filePath, updatedContent, "utf8", (err) => {
-        if (err) {
-          return resp.status(500).json({ error: "Failed to update file" });
-        }
-        resp.json({ message: "Data updated successfully" });
-      });
-    });
-  });
-};
-
-const checking = (req, resp) => {
-  // Mock keys array
-  const keys = [
-    "Z",
-    "BD",
-    "U",
-    "FC",
-    "SAN",
-    "SIL",
-    "WON",
-    "PH",
-    "SMB",
-    "WOC",
-    "CAC",
-    "CEC",
-    "ROK",
-    "CNDS",
-    "PKRZ",
-    "RSD",
-    "BDD",
-    "PSP",
-    "SATC",
-    "HCL",
-    "WP",
-    "EXCK",
-    "ECND",
-    "STFR",
-    "ST",
-    "WLS",
-    "WLM",
-    "WLSL",
-    "WLSC",
-    "WLMC",
-    "WLSLC",
-    "WLSLNC",
-    "WBMC",
-    "WHSC",
-    "WHPC",
-    "WLSN",
-    "WLMN",
-    "WBMN",
-    "WHSN",
-    "WHPN",
-    "FE26",
-    "SULF",
-    "ASHZ",
-    "CGO2",
-    "CGCO2",
-    "CGN2O",
-  ];
-
-  // API endpoint
+const fetchOPCFormData = async (req, resp) => {
   try {
-    // Read the file
+    const siteName = req.query.siteName || "umstead";
     const filePathFromEnv = getFilePath();
+    if (!filePathFromEnv) return resp.status(500).json({ error: "FilePath is not defined." });
 
-    // Ensure the file path is defined
-    if (!filePathFromEnv) {
-      return resp.status(500).json({ error: "FilePath is not defined." });
-    }
     const driveCPath = path.join(filePathFromEnv);
-    const filePath = path.join(driveCPath, "umstead.sol");
+    const filePath = path.join(driveCPath, `${siteName}.opc`);
+    
+    if (!fs.existsSync(filePath)) return resp.status(404).json({ message: `Site file ${siteName}.opc not found` });
 
-    // Read the file
-    const data = fs.readFileSync(filePath, "utf-8");
+    const data = fs.readFileSync(filePath, "utf8");
+    const lines = data.split("\n");
 
-    // Split data into lines and filter out empty lines
-    const lines = data.split("\n").filter((line) => line.trim() !== "");
+    const siteInfo1 = lines[0] || "";
+    const siteInfo2 = lines[1] || "";
 
-    // Parse values and group into JSON
-    const jsonResponse = [];
-    let currentKeyIndex = 0;
+    const model = await getModelForFile("filename.OPC");
+    if (!model) return resp.status(500).json({ error: "Model for .OPC not found" });
 
-    for (let i = 0; i < lines.length; i++) {
-      const values = lines[i]
-        .trim()
-        .split(/\s+/)
-        .map((value) => (!isNaN(value) ? parseFloat(value) : value));
+    // Identify the first line in the model (e.g., Line 3 for 3-n)
+    const lineNums = Object.keys(model.lines).map(Number).sort((a,b) => a-b);
+    const firstModelLineNum = lineNums[0] || 1;
+    const skipLines = firstModelLineNum - 1;
 
-      const groupedValues = [];
-      while (values.length > 0) {
-        groupedValues.push(values.splice(0, 6)); // Group in sets of 6
+    const resultRows = lines.slice(skipLines).filter(l => l.trim()).map((line) => {
+      const values = line.trim().split(/\s+/);
+      const rowData = {};
+      model.lines[firstModelLineNum].forEach((varDef) => {
+        rowData[varDef.Variable_Code] = values[varDef.Field - 1] || null;
+      });
+      return rowData;
+    });
+
+    resp.json({ data: resultRows, siteInfo1, siteInfo2, siteName });
+  } catch (err) {
+    resp.status(500).json({ error: err.message });
+  }
+};
+
+const fetchSITFormData = async (req, resp) => {
+  try {
+    const siteName = req.query.siteName || "umstead";
+    const filePathFromEnv = getFilePath();
+    if (!filePathFromEnv) return resp.status(500).json({ error: "FilePath is not defined." });
+
+    const driveCPath = path.join(filePathFromEnv);
+    const filePath = path.join(driveCPath, `${siteName}.sit`);
+
+    if (!fs.existsSync(filePath)) return resp.status(404).json({ message: `Site file ${siteName}.sit not found` });
+
+    const data = fs.readFileSync(filePath, "utf8");
+    const lines = data.split("\n");
+
+    const siteInfo1 = lines[0] || "";
+    const siteInfo2 = lines[1] || "";
+    const siteInfo3 = lines[2] || "";
+
+    const model = await getModelForFile("filename.SIT");
+    if (!model) return resp.status(500).json({ error: "Model for .SIT not found" });
+
+    const resultRows = [];
+    const descriptions = {};
+
+    // Get all line numbers from the model that are >= 4
+    const lineNums = Object.keys(model.lines).map(Number).sort((a,b) => a-b);
+    
+    lineNums.forEach((lineNum) => {
+      // If user wants lines 1-3 as headers, we only show parameters for Line 4 onwards in the grid
+      if (lineNum >= 4 && lines[lineNum - 1]) {
+        const values = lines[lineNum - 1].trim().split(/\s+/);
+        const rowData = { id: lineNum }; // Carry line number as ID
+        model.lines[lineNum].forEach((varDef) => {
+          rowData[varDef.Variable_Code] = values[varDef.Field - 1] || null;
+          descriptions[varDef.Variable_Code] = varDef.Description;
+        });
+        resultRows.push(rowData);
       }
+    });
 
-      groupedValues.forEach((group) => {
-        if (currentKeyIndex < keys.length) {
-          jsonResponse.push({ [keys[currentKeyIndex]]: group });
-          currentKeyIndex++;
+    resp.json({ data: resultRows, descriptions, siteInfo1, siteInfo2, siteInfo3, siteName });
+  } catch (err) {
+    resp.status(500).json({ error: err.message });
+  }
+};
+
+const fetchSOLFormData = async (req, resp) => {
+  try {
+    const siteName = req.query.siteName || "umstead";
+    const filePathFromEnv = getFilePath();
+    if (!filePathFromEnv) return resp.status(500).json({ error: "FilePath is not defined." });
+
+    const driveCPath = path.join(filePathFromEnv);
+    const filePath = path.join(driveCPath, `${siteName}.sol`);
+
+    if (!fs.existsSync(filePath)) return resp.status(404).json({ message: `Site file ${siteName}.sol not found` });
+
+    const data = fs.readFileSync(filePath, "utf8");
+    const lines = data.split("\n");
+
+    const model = await getModelForFile("filename.SOL");
+    if (!model) return resp.status(500).json({ error: "Model for .SOL not found" });
+
+    // Standards: Header metadata
+    const siteInfo1 = lines[0] || ""; // Site Name/Order (Line 1)
+
+    const rows = [];
+    const universalParams = {}; // Line 1, 2 & 3
+    const mainData = {};
+    const descriptions = {};
+
+    Object.keys(model.lines).forEach((lineNum) => {
+      const lineIdx = parseInt(lineNum, 10) - 1;
+      if (lines[lineIdx]) {
+        const lineContent = lines[lineIdx];
+        
+        // Populate descriptions catalog
+        model.lines[lineNum].forEach((varDef) => {
+            descriptions[varDef.Variable_Code] = varDef.Description;
+        });
+
+        if (lineIdx < 3) {
+          // Lines 1, 2 & 3 treated as Universal Parameters
+          const lineValues = lineContent.trim().split(/\s+/);
+          
+          model.lines[lineNum].forEach((varDef) => {
+            let val = "";
+            
+            if (lineIdx === 0) {
+               if (varDef.Field === 1) {
+                  val = lineContent.substring(0, 20).trim();
+               } else if (varDef.Field === 2) {
+                  val = lineContent.substring(20, 60).trim();
+               }
+            } else {
+               // Lines 2 and 3 are 8-char fields but space-delimited is safer
+               val = lineValues[varDef.Field - 1] || "";
+               
+               // Fallback to fixed-width if split failed to find the field
+               if (!val) {
+                   const fieldWidth = 8;
+                   const start = (varDef.Field - 1) * fieldWidth;
+                   if (lineContent.length >= start) {
+                       val = lineContent.substring(start, start + fieldWidth).trim();
+                   }
+               }
+            }
+
+            // ROBUSTNESS REFINEMENT: Sanitize integer fields for selection-inputs
+            // Dropdown options in the UI are keyed to exact characters (e.g. "2") 
+            // but legacy EPIC files often store them as reals (e.g. "2.00").
+            if (varDef.Data_Type === "integer" && val && !isNaN(val)) {
+                val = Math.floor(parseFloat(val)).toString();
+            }
+
+            universalParams[varDef.Variable_Code] = val || "";
+          });
+        } else {
+          const colVar = model.lines[lineNum][0]; 
+          const colValues = lineContent.trim().split(/\s+/); 
+          colValues.forEach((val, colIdx) => {
+             const colKey = `column${colIdx + 1}`;
+             if (!mainData[colKey]) mainData[colKey] = {};
+             mainData[colKey][colVar.Variable_Code] = val;
+          });
+        }
+      }
+    });
+
+    resp.json({ 
+      data: { rows, mainData }, 
+      mainData, 
+      universalParams,
+      descriptions, 
+      siteInfo1, 
+      siteName 
+    });
+  } catch (err) {
+    resp.status(500).json({ error: err.message });
+  }
+};
+
+const updateOPCFormData = async (req, resp) => {
+  const { formData, siteInfo1, siteInfo2, siteName: bodySiteName } = req.body;
+  const siteName = bodySiteName || "umstead";
+  try {
+    const filePathFromEnv = getFilePath();
+    if (!filePathFromEnv) return resp.status(500).json({ error: "FilePath is not defined." });
+
+    const filePath = path.join(filePathFromEnv, `${siteName}.opc`);
+    if (!fs.existsSync(filePath)) return resp.status(404).json({ message: `Site file ${siteName}.opc not found` });
+
+    const model = await getModelForFile("filename.OPC");
+    const data = fs.readFileSync(filePath, "utf8");
+    let lines = data.split("\n");
+
+    // Update first two lines
+    if (siteInfo1 !== undefined) lines[0] = siteInfo1;
+    if (siteInfo2 !== undefined) lines[1] = siteInfo2;
+
+    const lineNums = Object.keys(model.lines).map(Number).sort((a,b) => a-b);
+    const firstModelLineNum = lineNums[0] || 1;
+    const skipLines = firstModelLineNum - 1;
+
+    // Preserve first 2 lines (or whatever skipLines is) and then rebuild data part
+    const headerPart = lines.slice(0, skipLines);
+    const updatedDataLines = formData.map((rowData) => {
+        const values = [];
+        model.lines[firstModelLineNum].forEach((varDef) => {
+            values.push(rowData[varDef.Variable_Code] || "0");
+        });
+        // Pad for fixed-width-like look, though space-separated is standard
+        return values.map(v => String(v).padStart(8)).join("");
+    });
+
+    const finalContent = [...headerPart, ...updatedDataLines].join("\n");
+    fs.writeFileSync(filePath, finalContent, "utf8");
+    resp.json({ message: "Data updated successfully" });
+  } catch (err) {
+    resp.status(500).json({ error: err.message });
+  }
+};
+
+const updateSITFormData = async (req, resp) => {
+  const { formData, siteInfo1, siteInfo2, siteInfo3, siteName: bodySiteName } = req.body;
+  const siteName = bodySiteName || "umstead";
+  try {
+    const filePathFromEnv = getFilePath();
+    if (!filePathFromEnv) return resp.status(500).json({ error: "FilePath is not defined." });
+
+    const filePath = path.join(filePathFromEnv, `${siteName}.sit`);
+    if (!fs.existsSync(filePath)) return resp.status(404).json({ message: `Site file ${siteName}.sit not found` });
+
+    const model = await getModelForFile("filename.SIT");
+    const data = fs.readFileSync(filePath, "utf8");
+    let lines = data.split("\n");
+
+    // Reconstruct the 3-line header
+    if (siteInfo1 !== undefined) lines[0] = siteInfo1;
+    if (siteInfo2 !== undefined) lines[1] = siteInfo2;
+    if (siteInfo3 !== undefined) lines[2] = siteInfo3;
+
+    // SIT parameters are typically one instance per line
+    // We Map Line 4 to index 3, Line 5 to index 4, etc.
+    if (formData && Array.isArray(formData)) {
+      formData.forEach((rowData) => {
+        const lineNum = rowData.id; // Correct line number from fetch
+        const lineIdx = lineNum - 1;
+        
+        if (model.lines[lineNum]) {
+            const values = [];
+            model.lines[lineNum].forEach((varDef) => {
+                values.push(rowData[varDef.Variable_Code] || "0");
+            });
+            // Fixed width pad (8 chars is standard for EPIC values)
+            lines[lineIdx] = values.map(v => String(v).padStart(8)).join("");
         }
       });
     }
 
-    // Send JSON response
-    resp.status(200).json({
-      data: jsonResponse,
+    fs.writeFileSync(filePath, lines.join("\n"), "utf8");
+    resp.json({ message: "Data updated successfully" });
+  } catch (err) {
+    resp.status(500).json({ error: err.message });
+  }
+};
+
+const updateSOLFormData = async (req, resp) => {
+  const { formMainData, universalParams, siteInfo1, siteName: bodySiteName } = req.body;
+  const siteName = bodySiteName || "umstead";
+  try {
+    const filePathFromEnv = getFilePath();
+    if (!filePathFromEnv) return resp.status(500).json({ error: "FilePath is not defined." });
+
+    const driveCPath = path.join(filePathFromEnv);
+    const filePath = path.join(driveCPath, `${siteName}.sol`);
+    if (!fs.existsSync(filePath)) return resp.status(404).json({ message: `Site file ${siteName}.sol not found` });
+
+    const model = await getModelForFile("filename.SOL");
+    const data = fs.readFileSync(filePath, "utf8");
+    const lines = data.split("\n");
+
+    // Standard Line 1 header update
+    if (siteInfo1 !== undefined) lines[0] = siteInfo1;
+
+    // Handle Universal Parameters (Line 2 & 3)
+    [2, 3].forEach((lineNum) => {
+        const lineIdx = lineNum - 1;
+        if (universalParams && model.lines[lineNum]) {
+            const values = [];
+            model.lines[lineNum].forEach((varDef) => {
+               values.push(universalParams[varDef.Variable_Code] || "0");
+            });
+            lines[lineIdx] = values.map(v => String(v).padStart(8)).join("");
+        }
     });
-  } catch (error) {
-    console.error(error);
-    resp.status(500).json({ error: "Failed to process the .dat file" });
+
+    // mainData contains horizon columns starting from Line 4
+    if (formMainData) {
+      const colKeys = Object.keys(formMainData); 
+      Object.keys(model.lines).forEach((lineNum) => {
+        const lineIdx = parseInt(lineNum, 10) - 1;
+        if (lineIdx >= 3 && lines[lineIdx]) {
+           const originalLine = lines[lineIdx];
+           const values = originalLine.match(/\S+/g) || [];
+           const varDef = model.lines[lineNum][0];
+           
+           colKeys.forEach((colKey, colIdx) => {
+              if (formMainData[colKey] && formMainData[colKey][varDef.Variable_Code] !== undefined) {
+                  values[colIdx] = formMainData[colKey][varDef.Variable_Code];
+              }
+           });
+           
+           // Use padStart(8) for fixed width values in main data to be safe
+           lines[lineIdx] = values.map(v => String(v).padStart(8)).join("");
+        }
+      });
+    }
+
+    fs.writeFileSync(filePath, lines.join("\n"), "utf8");
+    resp.json({ message: "Data updated successfully" });
+  } catch (err) {
+    resp.status(500).json({ error: err.message });
   }
 };
 
 export {
-  checking,
   fetchOPCFormData,
   updateOPCFormData,
-  updateOPCFileWithNewRows,
   fetchSITFormData,
   updateSITFormData,
   fetchSOLFormData,

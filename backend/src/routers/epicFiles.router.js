@@ -11,13 +11,13 @@ import {
 
 const epicRunFileRouter = express.Router();
 
-epicRunFileRouter.get("/", getEpicRunFile);
-epicRunFileRouter.put("/updateData", updateEpicRunFile);
-epicRunFileRouter.put("/updateData/epicCont", updateEpicContFile);
+epicRunFileRouter.get("/getEpicRun", getEpicRunFile);
+epicRunFileRouter.put("/updateEpicRun", updateEpicRunFile);
 
-epicRunFileRouter.get("/epicCount", getEpicCount);
+epicRunFileRouter.get("/getEpicCont", getEpicCount);
+epicRunFileRouter.put("/updateEpicCont", updateEpicContFile);
+
 epicRunFileRouter.get("/getParm1102Data", getParm1102Data);
-
 epicRunFileRouter.put("/updatePARM1102", updatePARM1102Data);
 
 export { epicRunFileRouter };
