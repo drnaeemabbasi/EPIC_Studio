@@ -1,0 +1,19 @@
+{
+  "files": {
+    "main.css": "./static/css/main.bc3ff251.css",
+    "main.js": "./static/js/main.5aada922.js",
+    "static/js/453.ed3810f9.chunk.js": "./static/js/453.ed3810f9.chunk.js",
+    "static/media/epic_logo.png": "./static/media/epic_logo.9099753dce2b0e01374d.png",
+    "static/media/agrifile_logo.png": "./static/media/agrifile_logo.b21157b7ed23b8cb0a10.png",
+    "static/media/teal-climate-logo-1.svg": "./static/media/teal-climate-logo-1.75b5ca694b8b74fe39de89f5159e7734.svg",
+    "static/media/teal-climate-logo-2.svg": "./static/media/teal-climate-logo-2.026850302a25d4016afe4a44e983c05f.svg",
+    "index.html": "./index.html",
+    "main.bc3ff251.css.map": "./static/css/main.bc3ff251.css.map",
+    "main.5aada922.js.map": "./static/js/main.5aada922.js.map",
+    "453.ed3810f9.chunk.js.map": "./static/js/453.ed3810f9.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.bc3ff251.css",
+    "static/js/main.5aada922.js"
+  ]
+}
